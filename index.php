@@ -4,6 +4,7 @@ use GuzzleHttp\Client;
 
 $telegramToken = '7803409599:AAGJL64U5ahZyiiCcwvB4C95vXQvHHZXdbo';
 $moralisApiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImMzOGEwMDRmLWZiN2YtNDc0Mi1iODY0LTNlMjJkZjFiMjYzNiIsIm9yZ0lkIjoiNDE1NDY4IiwidXNlcklkIjoiNDI2OTgxIiwidHlwZUlkIjoiYTMwZmYyNmMtNGU0OC00YTQ0LTg2MmEtMmJlMGZmMGU0NDdlIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3MzExNDIxODcsImV4cCI6NDg4NjkwMjE4N30.RuooKtDNumak-ycuFQfiYPYxpDaNOcSqydxBHmNUf6w';
+
 $client = new Client();
 
 function sendMessage($chatId, $text, $buttons = []) {
@@ -21,140 +22,132 @@ function sendMessage($chatId, $text, $buttons = []) {
     ]);
 }
 
-function answerCallbackQuery($callbackId, $text) {
-    global $telegramToken;
-    $url = "https://api.telegram.org/bot$telegramToken/answerCallbackQuery";
-    $client = new Client();
-    $client->post($url, [
-        'json' => [
-            'callback_query_id' => $callbackId,
-            'text' => $text,
-            'show_alert' => false
+function getMoralisData($endpoint) {
+    global $moralisApiKey, $client;
+    $response = $client->get("https://deep-index.moralis.io/api/v2.2/$endpoint", [
+        'headers' => [
+            'X-API-Key' => $moralisApiKey
         ]
-    ]);
-}
-
-function fetchData($url) {
-    global $moralisApiKey;
-    $client = new Client();
-    $response = $client->request('GET', $url, [
-        'headers' => ['X-API-Key' => $moralisApiKey]
     ]);
     return json_decode($response->getBody(), true);
 }
 
-// Only handle POST requests
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    exit("Method Not Allowed");
-}
+function handleWebhook($update) {
+    if (isset($update['message'])) {
+        $chatId = $update['message']['chat']['id'];
+        $text = $update['message']['text'];
 
-// Process input from Telegram
-$update = json_decode(file_get_contents("php://input"), TRUE);
+        if ($text == '/start') {
+            $buttons = [
+                [['text' => 'Wallet', 'callback_data' => 'wallet']],
+                [['text' => 'NFT', 'callback_data' => 'nft']],
+                [['text' => 'DeFi', 'callback_data' => 'defi']],
+                [['text' => 'Token', 'callback_data' => 'token']],
+            ];
+            sendMessage($chatId, "Pilih kategori untuk informasi lebih lanjut:", $buttons);
+        }
+    } elseif (isset($update['callback_query'])) {
+        $chatId = $update['callback_query']['message']['chat']['id'];
+        $data = $update['callback_query']['data'];
 
-if (isset($update["message"])) {
-    $chatId = $update["message"]["chat"]["id"];
-    $text = $update["message"]["text"];
-
-    if ($text == "/start") {
-        sendMessage($chatId, "Pilih opsi:", [
-            [['text' => "Wallet", 'callback_data' => 'wallet']],
-            [['text' => "NFT", 'callback_data' => 'nft']],
-            [['text' => "DeFi", 'callback_data' => 'defi']],
-            [['text' => "Token", 'callback_data' => 'token']]
-        ]);
+        if ($data == 'wallet') {
+            $buttons = [
+                [['text' => 'Get Wallet Token Balances', 'callback_data' => 'wallet_token_balances']],
+                [['text' => 'Get Wallet Token Approvals', 'callback_data' => 'wallet_token_approvals']],
+                [['text' => 'Get Wallet PnL', 'callback_data' => 'wallet_pnl']],
+                [['text' => 'Get Wallet Details', 'callback_data' => 'wallet_details']],
+                [['text' => 'Get Linea Name Service Domains', 'callback_data' => 'wallet_lns']],
+            ];
+            sendMessage($chatId, "Pilih opsi Wallet:", $buttons);
+        } elseif ($data == 'nft') {
+            $buttons = [
+                [['text' => 'Get NFTs', 'callback_data' => 'get_nfts']],
+                [['text' => 'Get NFT Metadata', 'callback_data' => 'get_nft_metadata']],
+                [['text' => 'Get NFT Prices', 'callback_data' => 'get_nft_prices']],
+                [['text' => 'Get NFT Trades', 'callback_data' => 'get_nft_trades']],
+                [['text' => 'Get NFT Stats', 'callback_data' => 'get_nft_stats']],
+                [['text' => 'Get NFT Traits and Rarity', 'callback_data' => 'get_nft_traits']],
+            ];
+            sendMessage($chatId, "Pilih opsi NFT:", $buttons);
+        } elseif ($data == 'defi') {
+            $buttons = [
+                [['text' => 'Get DeFi Positions on Pancakeswap v2', 'callback_data' => 'defi_positions_pancakeswap']],
+            ];
+            sendMessage($chatId, "Pilih opsi DeFi:", $buttons);
+        } elseif ($data == 'token') {
+            $buttons = [
+                [['text' => 'Get Token Price', 'callback_data' => 'token_price']],
+                [['text' => 'Get Token Approvals', 'callback_data' => 'token_approvals']],
+                [['text' => 'Get Token Top Traders', 'callback_data' => 'token_top_traders']],
+                [['text' => 'Get Token Pairs & Liquidity', 'callback_data' => 'token_pairs']],
+                [['text' => 'Get Token Stats', 'callback_data' => 'token_stats']],
+                [['text' => 'Get Token Owners', 'callback_data' => 'token_owners']],
+            ];
+            sendMessage($chatId, "Pilih opsi Token:", $buttons);
+        } else {
+            $result = "Hasil pencarian tidak ditemukan";
+            switch ($data) {
+                case 'wallet_token_balances':
+                    $result = getMoralisData(":address/erc20?chain=linea");
+                    break;
+                case 'wallet_token_approvals':
+                    $result = getMoralisData("wallets/:address/approvals?chain=linea");
+                    break;
+                case 'wallet_pnl':
+                    $result = getMoralisData("wallets/:address/profitability/summary?chain=linea");
+                    break;
+                case 'wallet_details':
+                    $result = getMoralisData("wallets/:address/chains?chain=linea");
+                    break;
+                case 'wallet_lns':
+                    $result = getMoralisData("resolve/:address/reverse?chain=linea");
+                    break;
+                case 'get_nfts':
+                    $result = getMoralisData(":address/nft?chain=linea");
+                    break;
+                case 'get_nft_metadata':
+                    $result = getMoralisData("nft/:address/:token_id?chain=linea");
+                    break;
+                case 'get_nft_prices':
+                    $result = getMoralisData("nft/:address/:token_id/floor-price?chain=linea");
+                    break;
+                case 'get_nft_trades':
+                    $result = getMoralisData("nft/:address/:token_id/trades?chain=linea");
+                    break;
+                case 'get_nft_stats':
+                    $result = getMoralisData("nft/:address/:token_id/stats?chain=linea");
+                    break;
+                case 'get_nft_traits':
+                    $result = getMoralisData("nft/:address/traits?chain=linea");
+                    break;
+                case 'defi_positions_pancakeswap':
+                    $result = getMoralisData("wallets/:address/defi/pancakeswap-v2/positions?chain=linea");
+                    break;
+                case 'token_price':
+                    $result = getMoralisData("erc20/:address/price");
+                    break;
+                case 'token_approvals':
+                    $result = getMoralisData("wallets/:address/approvals");
+                    break;
+                case 'token_top_traders':
+                    $result = getMoralisData("erc20/:address/top-gainers");
+                    break;
+                case 'token_pairs':
+                    $result = getMoralisData(":token_address/pairs/stats");
+                    break;
+                case 'token_stats':
+                    $result = getMoralisData("erc20/:address/stats");
+                    break;
+                case 'token_owners':
+                    $result = getMoralisData("erc20/:token_address/owners");
+                    break;
+            }
+            sendMessage($chatId, json_encode($result, JSON_PRETTY_PRINT));
+        }
     }
-} elseif (isset($update["callback_query"])) {
-    $callbackId = $update["callback_query"]["id"];
-    $chatId = $update["callback_query"]["message"]["chat"]["id"];
-    $data = $update["callback_query"]["data"];
-
-    answerCallbackQuery($callbackId, "Anda memilih $data.");
-
-    if ($data == "wallet") {
-        sendMessage($chatId, "Masukkan alamat wallet:");
-    } elseif ($data == "nft") {
-        sendMessage($chatId, "Masukkan alamat kontrak NFT:");
-    } elseif ($data == "defi") {
-        sendMessage($chatId, "Masukkan alamat wallet untuk posisi Pancakeswap v2:");
-    } elseif ($data == "token") {
-        sendMessage($chatId, "Masukkan alamat token:");
-    }
 }
 
-// Wallet function
-if (isset($text) && preg_match('/^wallet (.+)$/', $text, $match)) {
-    $walletAddress = $match[1];
-
-    $balances = fetchData("https://deep-index.moralis.io/api/v2.2/$walletAddress/erc20?chain=linea");
-    sendMessage($chatId, "Token Balances: " . json_encode($balances));
-
-    $approvals = fetchData("https://deep-index.moralis.io/api/v2.2/wallets/$walletAddress/approvals?chain=linea");
-    sendMessage($chatId, "Token Approvals: " . json_encode($approvals));
-
-    $pnl = fetchData("https://deep-index.moralis.io/api/v2.2/wallets/$walletAddress/profitability/summary?chain=linea");
-    sendMessage($chatId, "PnL Summary: " . json_encode($pnl));
-
-    $details = fetchData("https://deep-index.moralis.io/api/v2.2/wallets/$walletAddress/chains?chain=linea");
-    sendMessage($chatId, "Wallet Details: " . json_encode($details));
-
-    $nameService = fetchData("https://deep-index.moralis.io/api/v2.2/resolve/$walletAddress/reverse?chain=linea");
-    sendMessage($chatId, "Linea Name Service Domains: " . json_encode($nameService));
-}
-
-// NFT function
-if (isset($text) && preg_match('/^nft (.+)$/', $text, $match)) {
-    $nftAddress = $match[1];
-
-    $nfts = fetchData("https://deep-index.moralis.io/api/v2.2/$nftAddress/nft?chain=linea");
-    sendMessage($chatId, "NFTs: " . json_encode($nfts));
-
-    $metadata = fetchData("https://deep-index.moralis.io/api/v2.2/nft/$nftAddress/metadata?chain=linea");
-    sendMessage($chatId, "NFT Metadata: " . json_encode($metadata));
-
-    $owners = fetchData("https://deep-index.moralis.io/api/v2.2/nft/$nftAddress/owners?chain=linea");
-    sendMessage($chatId, "NFT Owners: " . json_encode($owners));
-
-    $prices = fetchData("https://deep-index.moralis.io/api/v2.2/nft/$nftAddress/floor-price?chain=linea");
-    sendMessage($chatId, "NFT Prices: " . json_encode($prices));
-
-    $trades = fetchData("https://deep-index.moralis.io/api/v2.2/nft/$nftAddress/trades?chain=linea");
-    sendMessage($chatId, "NFT Trades: " . json_encode($trades));
-
-    $stats = fetchData("https://deep-index.moralis.io/api/v2.2/nft/$nftAddress/stats?chain=linea");
-    sendMessage($chatId, "NFT Stats: " . json_encode($stats));
-
-    $traits = fetchData("https://deep-index.moralis.io/api/v2.2/nft/$nftAddress/traits?chain=linea");
-    sendMessage($chatId, "NFT Traits and Rarity: " . json_encode($traits));
-}
-
-// DeFi function
-if (isset($text) && preg_match('/^defi (.+)$/', $text, $match)) {
-    $walletAddress = $match[1];
-    $defiPositions = fetchData("https://deep-index.moralis.io/api/v2.2/wallets/$walletAddress/defi/pancakeswap-v2/positions?chain=linea");
-    sendMessage($chatId, "DeFi Positions: " . json_encode($defiPositions));
-}
-
-// Token function
-if (isset($text) && preg_match('/^token (.+)$/', $text, $match)) {
-    $tokenAddress = $match[1];
-
-    $price = fetchData("https://deep-index.moralis.io/api/v2.2/erc20/$tokenAddress/price");
-    sendMessage($chatId, "Token Price: " . json_encode($price));
-
-    $approvals = fetchData("https://deep-index.moralis.io/api/v2.2/wallets/$tokenAddress/approvals");
-    sendMessage($chatId, "Token Approvals: " . json_encode($approvals));
-
-    $topTraders = fetchData("https://deep-index.moralis.io/api/v2.2/erc20/$tokenAddress/top-gainers");
-    sendMessage($chatId, "Token Top Traders: " . json_encode($topTraders));
-
-    $pairs = fetchData("https://deep-index.moralis.io/api/v2.2/$tokenAddress/pairs/stats");
-    sendMessage($chatId, "Token Pairs & Liquidity: " . json_encode($pairs));
-
-    $stats = fetchData("https://deep-index.moralis.io/api/v2.2/erc20/$tokenAddress/stats");
-    sendMessage($chatId, "Token Stats: " . json_encode($stats));
-
-    $owners = fetchData("https://deep-index.moralis.io/api/v2.2/erc20/$tokenAddress/owners");
-    sendMessage($chatId, "Token Owners: " . json_encode($owners));
-}
+$input = file_get_contents('php://input');
+$update = json_decode($input, true);
+handleWebhook($update);
 ?>
