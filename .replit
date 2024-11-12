@@ -1,0 +1,3 @@
+dependencies:
+  - composer install
+run = "php index.php"
