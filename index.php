@@ -1,5 +1,5 @@
 <?php
-require 'vendor/autoload.php';
+require 'vendor/autoload.php'; // Sesuaikan path jika unggah manual
 use GuzzleHttp\Client;
 
 $telegramToken = '7803409599:AAGJL64U5ahZyiiCcwvB4C95vXQvHHZXdbo';
@@ -22,6 +22,19 @@ function sendMessage($chatId, $text, $buttons = []) {
     ]);
 }
 
+function answerCallbackQuery($callbackId, $text) {
+    global $telegramToken;
+    $url = "https://api.telegram.org/bot$telegramToken/answerCallbackQuery";
+    $client = new Client();
+    $client->post($url, [
+        'json' => [
+            'callback_query_id' => $callbackId,
+            'text' => $text,
+            'show_alert' => false
+        ]
+    ]);
+}
+
 function fetchData($url) {
     global $moralisApiKey;
     $client = new Client();
@@ -31,25 +44,47 @@ function fetchData($url) {
     return json_decode($response->getBody(), true);
 }
 
-// Process incoming updates from Telegram
+// Terima input POST dari Telegram
 $update = json_decode(file_get_contents("php://input"), TRUE);
-$chatId = $update["message"]["chat"]["id"];
-$text = $update["message"]["text"];
 
-// Display main menu
-if ($text == "/start") {
-    sendMessage($chatId, "Select an option:", [
-        [['text' => "Wallet", 'callback_data' => 'wallet']],
-        [['text' => "NFT", 'callback_data' => 'nft']],
-        [['text' => "DeFi", 'callback_data' => 'defi']],
-        [['text' => "Token", 'callback_data' => 'token']]
-    ]);
+if (isset($update["message"])) {
+    // Jika pesan teks
+    $chatId = $update["message"]["chat"]["id"];
+    $text = $update["message"]["text"];
+
+    // Tampilkan menu utama
+    if ($text == "/start") {
+        sendMessage($chatId, "Pilih opsi:", [
+            [['text' => "Wallet", 'callback_data' => 'wallet']],
+            [['text' => "NFT", 'callback_data' => 'nft']],
+            [['text' => "DeFi", 'callback_data' => 'defi']],
+            [['text' => "Token", 'callback_data' => 'token']]
+        ]);
+    }
+} elseif (isset($update["callback_query"])) {
+    // Jika callback query dari inline keyboard
+    $callbackId = $update["callback_query"]["id"];
+    $chatId = $update["callback_query"]["message"]["chat"]["id"];
+    $data = $update["callback_query"]["data"];
+
+    // Tanggapi callback query
+    answerCallbackQuery($callbackId, "Anda memilih $data.");
+
+    if ($data == "wallet") {
+        sendMessage($chatId, "Masukkan alamat wallet:");
+    } elseif ($data == "nft") {
+        sendMessage($chatId, "Masukkan alamat kontrak NFT:");
+    } elseif ($data == "defi") {
+        sendMessage($chatId, "Masukkan alamat wallet untuk posisi Pancakeswap v2:");
+    } elseif ($data == "token") {
+        sendMessage($chatId, "Masukkan alamat token:");
+    }
 }
 
-// Wallet Functions
-if (preg_match('/^wallet (.+)$/', $text, $match)) {
+// Fungsi Wallet
+if (isset($text) && preg_match('/^wallet (.+)$/', $text, $match)) {
     $walletAddress = $match[1];
-    
+
     $balances = fetchData("https://deep-index.moralis.io/api/v2.2/$walletAddress/erc20?chain=linea");
     sendMessage($chatId, "Token Balances: " . json_encode($balances));
 
@@ -66,8 +101,8 @@ if (preg_match('/^wallet (.+)$/', $text, $match)) {
     sendMessage($chatId, "Linea Name Service Domains: " . json_encode($nameService));
 }
 
-// NFT Functions
-if (preg_match('/^nft (.+)$/', $text, $match)) {
+// Fungsi NFT
+if (isset($text) && preg_match('/^nft (.+)$/', $text, $match)) {
     $nftAddress = $match[1];
     
     $nfts = fetchData("https://deep-index.moralis.io/api/v2.2/$nftAddress/nft?chain=linea");
@@ -92,17 +127,15 @@ if (preg_match('/^nft (.+)$/', $text, $match)) {
     sendMessage($chatId, "NFT Traits and Rarity: " . json_encode($traits));
 }
 
-// DeFi Functions
-if ($text == "defi") {
-    sendMessage($chatId, "Enter wallet address for Pancakeswap v2 position:");
-} elseif (preg_match('/^defi (.+)$/', $text, $match)) {
+// Fungsi DeFi
+if (isset($text) && preg_match('/^defi (.+)$/', $text, $match)) {
     $walletAddress = $match[1];
     $defiPositions = fetchData("https://deep-index.moralis.io/api/v2.2/wallets/$walletAddress/defi/pancakeswap-v2/positions?chain=linea");
     sendMessage($chatId, "DeFi Positions: " . json_encode($defiPositions));
 }
 
-// Token Functions
-if (preg_match('/^token (.+)$/', $text, $match)) {
+// Fungsi Token
+if (isset($text) && preg_match('/^token (.+)$/', $text, $match)) {
     $tokenAddress = $match[1];
 
     $price = fetchData("https://deep-index.moralis.io/api/v2.2/erc20/$tokenAddress/price");
