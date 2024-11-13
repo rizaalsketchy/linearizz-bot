@@ -1,7 +1,6 @@
 {
-    "name": "rizaalsketchy/linearizz-bot",
-    "description": "All-in-on bot trackers live on Linea",
-    "require": {
-        "guzzlehttp/guzzle": "^7.0"
-    }
+  "require": {
+    "guzzlehttp/guzzle": "^7.0",
+    "psr/http-client": "^1.0"
+  }
 }
