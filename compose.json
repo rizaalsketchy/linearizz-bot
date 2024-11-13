@@ -1,19 +1,7 @@
 {
-  "name": "linearizz/linearizz-bot",
-  "description": "A simple bot for Linea tracking",
-  "type": "project",
-  "require": {
-    "guzzlehttp/guzzle": "^7.0"
-  },
-  "autoload": {
-    "psr-4": {
-      "LinearizzBot\\": "src/"
+    "name": "rizaalsketchy/linearizz-bot",
+    "description": "All-in-on bot trackers live on Linea",
+    "require": {
+        "guzzlehttp/guzzle": "^7.0"
     }
-  },
-  "scripts": {
-    "post-install-cmd": [
-      "php -r \"file_exists('vendor/autoload.php') ? 'Vendor installed' : exit(1);\""
-    ]
-  }
 }
-
