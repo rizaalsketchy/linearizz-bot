@@ -5,14 +5,13 @@ use GuzzleHttp\Client;
 $telegramToken = '7803409599:AAGJL64U5ahZyiiCcwvB4C95vXQvHHZXdbo';
 $moralisApiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImMzOGEwMDRmLWZiN2YtNDc0Mi1iODY0LTNlMjJkZjFiMjYzNiIsIm9yZ0lkIjoiNDE1NDY4IiwidXNlcklkIjoiNDI2OTgxIiwidHlwZUlkIjoiYTMwZmYyNmMtNGU0OC00YTQ0LTg2MmEtMmJlMGZmMGU0NDdlIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3MzExNDIxODcsImV4cCI6NDg4NjkwMjE4N30.RuooKtDNumak-ycuFQfiYPYxpDaNOcSqydxBHmNUf6w';
 
-$client = new Client();
+$client = new Client(); // Create the client instance once, outside the function
 
 function sendMessage($chatId, $text, $buttons = []) {
-    global $telegramToken;
+    global $telegramToken, $client;
     $url = "https://api.telegram.org/bot$telegramToken/sendMessage";
 
     $keyboard = $buttons ? json_encode(['inline_keyboard' => $buttons]) : '';
-    $client = new Client();
     $client->post($url, [
         'json' => [
             'chat_id' => $chatId,
@@ -22,8 +21,13 @@ function sendMessage($chatId, $text, $buttons = []) {
     ]);
 }
 
-function getMoralisData($endpoint) {
+function getMoralisData($endpoint, $address = '', $token_id = '') {
     global $moralisApiKey, $client;
+    
+    // Replace placeholders in the endpoint
+    $endpoint = str_replace(':address', $address, $endpoint);
+    $endpoint = str_replace(':token_id', $token_id, $endpoint);
+    
     $response = $client->get("https://deep-index.moralis.io/api/v2.2/$endpoint", [
         'headers' => [
             'X-API-Key' => $moralisApiKey
@@ -49,6 +53,10 @@ function handleWebhook($update) {
     } elseif (isset($update['callback_query'])) {
         $chatId = $update['callback_query']['message']['chat']['id'];
         $data = $update['callback_query']['data'];
+
+        // Example address for testing
+        $address = '0xExampleAddress';
+        $token_id = '1';
 
         if ($data == 'wallet') {
             $buttons = [
@@ -88,58 +96,58 @@ function handleWebhook($update) {
             $result = "Hasil pencarian tidak ditemukan";
             switch ($data) {
                 case 'wallet_token_balances':
-                    $result = getMoralisData(":address/erc20?chain=linea");
+                    $result = getMoralisData(":address/erc20?chain=linea", $address);
                     break;
                 case 'wallet_token_approvals':
-                    $result = getMoralisData("wallets/:address/approvals?chain=linea");
+                    $result = getMoralisData("wallets/:address/approvals?chain=linea", $address);
                     break;
                 case 'wallet_pnl':
-                    $result = getMoralisData("wallets/:address/profitability/summary?chain=linea");
+                    $result = getMoralisData("wallets/:address/profitability/summary?chain=linea", $address);
                     break;
                 case 'wallet_details':
-                    $result = getMoralisData("wallets/:address/chains?chain=linea");
+                    $result = getMoralisData("wallets/:address/chains?chain=linea", $address);
                     break;
                 case 'wallet_lns':
-                    $result = getMoralisData("resolve/:address/reverse?chain=linea");
+                    $result = getMoralisData("resolve/:address/reverse?chain=linea", $address);
                     break;
                 case 'get_nfts':
-                    $result = getMoralisData(":address/nft?chain=linea");
+                    $result = getMoralisData(":address/nft?chain=linea", $address);
                     break;
                 case 'get_nft_metadata':
-                    $result = getMoralisData("nft/:address/:token_id?chain=linea");
+                    $result = getMoralisData("nft/:address/:token_id?chain=linea", $address, $token_id);
                     break;
                 case 'get_nft_prices':
-                    $result = getMoralisData("nft/:address/:token_id/floor-price?chain=linea");
+                    $result = getMoralisData("nft/:address/:token_id/floor-price?chain=linea", $address, $token_id);
                     break;
                 case 'get_nft_trades':
-                    $result = getMoralisData("nft/:address/:token_id/trades?chain=linea");
+                    $result = getMoralisData("nft/:address/:token_id/trades?chain=linea", $address, $token_id);
                     break;
                 case 'get_nft_stats':
-                    $result = getMoralisData("nft/:address/:token_id/stats?chain=linea");
+                    $result = getMoralisData("nft/:address/:token_id/stats?chain=linea", $address, $token_id);
                     break;
                 case 'get_nft_traits':
-                    $result = getMoralisData("nft/:address/traits?chain=linea");
+                    $result = getMoralisData("nft/:address/traits?chain=linea", $address);
                     break;
                 case 'defi_positions_pancakeswap':
-                    $result = getMoralisData("wallets/:address/defi/pancakeswap-v2/positions?chain=linea");
+                    $result = getMoralisData("wallets/:address/defi/pancakeswap-v2/positions?chain=linea", $address);
                     break;
                 case 'token_price':
-                    $result = getMoralisData("erc20/:address/price");
+                    $result = getMoralisData("erc20/:address/price", $address);
                     break;
                 case 'token_approvals':
-                    $result = getMoralisData("wallets/:address/approvals");
+                    $result = getMoralisData("wallets/:address/approvals", $address);
                     break;
                 case 'token_top_traders':
-                    $result = getMoralisData("erc20/:address/top-gainers");
+                    $result = getMoralisData("erc20/:address/top-gainers", $address);
                     break;
                 case 'token_pairs':
-                    $result = getMoralisData(":token_address/pairs/stats");
+                    $result = getMoralisData(":token_address/pairs/stats", $address);
                     break;
                 case 'token_stats':
-                    $result = getMoralisData("erc20/:address/stats");
+                    $result = getMoralisData("erc20/:address/stats", $address);
                     break;
                 case 'token_owners':
-                    $result = getMoralisData("erc20/:token_address/owners");
+                    $result = getMoralisData("erc20/:token_address/owners", $address);
                     break;
             }
             sendMessage($chatId, json_encode($result, JSON_PRETTY_PRINT));
@@ -147,7 +155,7 @@ function handleWebhook($update) {
     }
 }
 
-$input = file_get_contents('php://input');
-$update = json_decode($input, true);
+header('Content-Type: application/json');
+$update = json_decode(file_get_contents('php://input'), true);
 handleWebhook($update);
 ?>
