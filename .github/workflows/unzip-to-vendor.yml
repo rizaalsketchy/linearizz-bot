@@ -1,0 +1,23 @@
+name: Unzip to Vendor
+
+on:
+  push:
+    paths:
+      - '*.zip'  # Menjalankan action saat ada file ZIP di-push ke repository
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Create Target Directory
+        run: mkdir -p vendor/guzzlehttp/guzzle  # Membuat folder target jika belum ada
+
+      - name: Extract ZIP File to Vendor
+        run: |
+          for file in *.zip; do
+            unzip -o "$file" -d vendor/guzzlehttp/guzzle
+          done
