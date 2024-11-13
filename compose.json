@@ -3,7 +3,7 @@
   "description": "A simple bot for Linea tracking",
   "type": "project",
   "require": {
-    "guzzlehttp/guzzle": "^7.0"  // Contoh dependensi, ganti sesuai kebutuhan Anda
+    "guzzlehttp/guzzle": "^7.0"
   },
   "autoload": {
     "psr-4": {
