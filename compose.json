@@ -1,6 +1,19 @@
-﻿{
+{
+  "name": "linearizz/linearizz-bot",
+  "description": "A simple bot for Linea tracking",
+  "type": "project",
   "require": {
-    "guzzlehttp/guzzle": "^7.0"
+    "guzzlehttp/guzzle": "^7.0"  // Contoh dependensi, ganti sesuai kebutuhan Anda
+  },
+  "autoload": {
+    "psr-4": {
+      "LinearizzBot\\": "src/"
+    }
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "php -r \"file_exists('vendor/autoload.php') ? 'Vendor installed' : exit(1);\""
+    ]
   }
 }
 
