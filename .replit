@@ -1,1 +1,1 @@
-run = "php composer.phar install"
+run = "bash <(curl -s https://raw.githubusercontent.com/replit/replit-web-installer/main/installer.sh) && curl -s https://getcomposer.org/installer | php && php composer.phar install && php index.php"
