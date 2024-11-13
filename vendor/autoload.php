@@ -1,18 +1,23 @@
 <?php
 // Autoload untuk Guzzle dan dependensinya
 spl_autoload_register(function ($class) {
-    $prefix = 'GuzzleHttp\\';
-    $baseDir = __DIR__ . '/guzzlehttp/guzzle/src/';
+    // Konfigurasi autoload untuk Guzzle
+    $prefixes = [
+        'GuzzleHttp\\' => __DIR__ . '/guzzlehttp/guzzle/src/',
+        'Psr\\Http\\Client\\' => __DIR__ . '/psr/http-client/src/',
+        'Psr\\Http\\Message\\' => __DIR__ . '/psr/http-message/src/',
+        'ralouphie\\' => __DIR__ . '/ralouphie/'
+    ];
     
-    if (strncmp($prefix, $class, strlen($prefix)) !== 0) {
-        return;
-    }
-    $relativeClass = substr($class, strlen($prefix));
-    $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
-    
-    if (file_exists($file)) {
-        require $file;
+    foreach ($prefixes as $prefix => $baseDir) {
+        if (strncmp($prefix, $class, strlen($prefix)) === 0) {
+            $relativeClass = substr($class, strlen($prefix));
+            $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
+            
+            if (file_exists($file)) {
+                require $file;
+                return;
+            }
+        }
     }
 });
-
-// Tambahkan autoload manual untuk dependensi lain jika diperlukan
