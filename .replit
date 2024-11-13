@@ -1,1 +1,1 @@
-run = "composer install --no-interaction && php index.php"
+run = "php composer.phar install"
